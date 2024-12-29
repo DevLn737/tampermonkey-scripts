@@ -12,6 +12,7 @@
     'use strict';
 
     function removeAds() {
+        // TODO: Полностью переписать логику на динамическую
         // Получаем все элементы списка поисковика
         const items = document.querySelectorAll('li.serp-item');
 
