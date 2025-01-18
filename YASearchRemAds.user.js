@@ -5,6 +5,7 @@
 // @description  Удаляет рекламные элементы из поисковой выдачи Яндекса
 // @author       DevLn
 // @match        https://yandex.ru/search/?text=*
+// @icon         https://translate.yandex.ru/icons/favicon.ico
 // @grant        none
 // ==/UserScript==
 
