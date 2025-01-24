@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Удаление рекламы из поисковика
 // @namespace    http://tampermonkey.net/
-// @version      1.1.0
+// @version      1.1.1
 // @description  Удаляет рекламные элементы из поисковой выдачи Яндекса
 // @author       DevLn
 // @match        https://yandex.ru/search/?text=*
