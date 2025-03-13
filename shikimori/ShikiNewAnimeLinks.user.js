@@ -11,8 +11,8 @@
 // @license      MIT
 // @require      https://gist.githubusercontent.com/Chortowod/814b010c68fc97e5f900df47bf79059c/raw/chtw_settings.js
 // @copyright    2024, Chortowod
-// @downloadURL  https://openuserjs.org/install/Chortowod/Shiki_New_Anime_Links_(RurackerMangaLibNyaaOther).user.js
-// @updateURL    https://openuserjs.org/meta/Chortowod/Shiki_New_Anime_Links_(RurackerMangaLibNyaaOther).meta.js
+// @downloadURL  https://github.com/DevLn737/tampermonkey-scripts/raw/refs/heads/main/shikimori/ShikiNewAnimeLinks.user.js
+// @updateURL    https://github.com/DevLn737/tampermonkey-scripts/raw/refs/heads/main/shikimori/ShikiNewAnimeLinks.user.js
 // ==/UserScript==
 
 let settings = new ChtwSettings('chtwNewLinks', '<a target="_blank" href="https://openuserjs.org/scripts/Chortowod/Shiki_New_Anime_Links_(RurackerMangaLibNyaaOther)">Новые ссылки</a>');
