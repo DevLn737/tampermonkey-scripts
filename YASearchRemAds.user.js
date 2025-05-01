@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Удаление рекламы из поисковика
 // @namespace    http://tampermonkey.net/
-// @version      1.1.1
+// @version      1.1.0
 // @description  Удаляет рекламные элементы из поисковой выдачи Яндекса
 // @author       DevLn
 // @match        https://yandex.ru/search/?text=*
@@ -23,7 +23,7 @@
 
             // Проходим и ищем элементы внутри с текстом "реклама"
             allChildren.forEach((child) => {
-                if (child.textContent.trim().toLowerCase() === 'реклама') {
+                if (child.textContent.trim().toLowerCase() === 'реклама' || child.textContent.trim().toLowerCase() === 'промо') {
                     console.log("Найден рекламный элемент:", child);
                     li.remove(); // Удаляем родительский <li>
                 }
