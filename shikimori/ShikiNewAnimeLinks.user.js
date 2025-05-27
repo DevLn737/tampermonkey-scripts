@@ -53,7 +53,7 @@ function newLinks() {
     let anilibriaL = 'https://darklibria.it/';
     let kodikL = 'https://kodikdb.com/find-player?shikimoriID=';
     let ruTrImg = 'https://imgur.com/HIExDt8.png';
-    let animeJoy = 'https://anime-joy.online/index.php?do=search&subaction=search&story='
+    let animeJoy = 'https://anime-joy.ru/index.php?do=search&subaction=search&story='
     let bckgrSize = 'background-size: 19px 19px; -webkit-background-size: 19px 19px;';
 
     let style_anime = `
@@ -67,7 +67,7 @@ function newLinks() {
 #NNMLink.b-link:before { background: url(https://nnmclub.to/favicon.ico) no-repeat; }
 #smotretLink.b-link:before { background: url(https://smotret-anime.online/favicon.ico) no-repeat; }
 #animegoLink.b-link:before { background: url(https://animego.org/favicon.ico) no-repeat; }
-#animeJoy.b-link:before { background: url(https://anime-joy.online/favicon.ico) no-repeat; }
+#animeJoy.b-link:before { background: url(https://anime-joy.ru/favicon.ico) no-repeat; }
 #sovetRom.b-link:before { background: url(https://sovetromantica.com/favicon.ico) no-repeat; }
 #linkAnilibria.b-link:before { background: url(https://darklibria.it/favicon.ico) no-repeat; }
 #linkNyaa.b-link:before, #linkNyaaOST.b-link:before { background: url(https://www.google.com/s2/favicons?sz=64&domain_url=https://nyaa.si) no-repeat; }
