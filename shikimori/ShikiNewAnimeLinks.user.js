@@ -3,7 +3,7 @@
 // @author       Chortowod (https://openuserjs.org/scripts/Chortowod)
 // @description  Добавляет пункты "Rutracker", "NNMClub", "MangaLib", "RanobeLib" и др. в список "На других сайтах" для поиска аниме|манги|ранобэ на торрентах/сайтах
 // @namespace    http://shikimori.me/
-// @version      1.0.8
+// @version      1.0.9
 // @match        *://shikimori.org/*
 // @match        *://shikimori.one/*
 // @match        *://shikimori.me/*
@@ -53,7 +53,7 @@ function newLinks() {
     let anilibriaL = 'https://darklibria.it/';
     let kodikL = 'https://kodikdb.com/find-player?shikimoriID=';
     let ruTrImg = 'https://imgur.com/HIExDt8.png';
-    let animeJoy = 'https://ajsub.ru/index.php?do=search&subaction=search&story='
+    let animeJoy = 'https://os.joyanime.ru/index.php?do=search&subaction=search&story='
     let bckgrSize = 'background-size: 19px 19px; -webkit-background-size: 19px 19px;';
 
     let style_anime = `
