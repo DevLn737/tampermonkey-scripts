@@ -3,10 +3,12 @@
 // @author       Chortowod (https://openuserjs.org/scripts/Chortowod)
 // @description  Добавляет пункты "Rutracker", "NNMClub", "MangaLib", "RanobeLib" и др. в список "На других сайтах" для поиска аниме|манги|ранобэ на торрентах/сайтах
 // @namespace    http://shikimori.me/
-// @version      1.0.10
+// @version      1.0.11
 // @match        *://shikimori.org/*
 // @match        *://shikimori.one/*
 // @match        *://shikimori.me/*
+// @match        *://shiki.one/*
+// @match        *://shikimori.rip/*
 // @icon         https://www.google.com/s2/favicons?domain=shikimori.me
 // @license      MIT
 // @require      https://gist.githubusercontent.com/Chortowod/814b010c68fc97e5f900df47bf79059c/raw/chtw_settings.js
