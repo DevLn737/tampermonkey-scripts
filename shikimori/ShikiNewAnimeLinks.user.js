@@ -55,7 +55,7 @@ function newLinks() {
     let anilibriaL = 'https://darklibria.it/';
     let kodikL = 'https://kodikdb.com/find-player?shikimoriID=';
     let ruTrImg = 'https://imgur.com/HIExDt8.png';
-    let animeJoy = 'https://joyanime.ru/index.php?do=search&subaction=search&story='
+    let animeJoy = 'https://ajsub.online/index.php?do=search&subaction=search&story=' 
     let bckgrSize = 'background-size: 19px 19px; -webkit-background-size: 19px 19px;';
 
     let style_anime = `
