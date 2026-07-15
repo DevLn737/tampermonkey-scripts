@@ -3,7 +3,7 @@
 // @author       Chortowod (https://openuserjs.org/scripts/Chortowod)
 // @description  Добавляет пункты "Rutracker", "NNMClub", "MangaLib", "RanobeLib" и др. в список "На других сайтах" для поиска аниме|манги|ранобэ на торрентах/сайтах
 // @namespace    http://shikimori.me/
-// @version      1.0.16
+// @version      1.0.17
 // @match        *://shikimori.org/*
 // @match        *://shikimori.one/*
 // @match        *://shikimori.me/*
@@ -13,6 +13,13 @@
 // @icon         https://www.google.com/s2/favicons?domain=shikimori.me
 // @license      MIT
 // @require      https://gist.githubusercontent.com/Chortowod/814b010c68fc97e5f900df47bf79059c/raw/chtw_settings.js
+// @grant        GM_xmlhttpRequest
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @connect      vk.com
+// @connect      vk.ru
+// @connect      anime-joy.ru
+// @connect      www.anime-joy.ru
 // @copyright    2024, Chortowod
 // @downloadURL  https://github.com/DevLn737/tampermonkey-scripts/raw/refs/heads/main/shikimori/ShikiNewAnimeLinks.user.js
 // @updateURL    https://github.com/DevLn737/tampermonkey-scripts/raw/refs/heads/main/shikimori/ShikiNewAnimeLinks.user.js
@@ -40,6 +47,138 @@ function initSettings() {
     settings.createOption('rulate', 'Rulate');
     settings.createOption('mangaLib', 'MangaLib');
     settings.createOption('animeJoy', 'AnimeJoy');
+    settings.createOption('yummyAnime', 'YummyAnime');
+}
+
+const ANIME_JOY_FALLBACK_ORIGIN = 'https://otakujoy.fun';
+const ANIME_JOY_CACHE_KEY = 'animeJoyMirror';
+const ANIME_JOY_CACHE_TTL = 6 * 60 * 60 * 1000;
+let animeJoyOriginRequest;
+
+function requestPage(url) {
+    return new Promise((resolve, reject) => {
+        GM_xmlhttpRequest({
+            method: 'GET',
+            url,
+            timeout: 15000,
+            onload: response => {
+                if (response.status >= 200 && response.status < 400) resolve(response);
+                else reject(new Error(`HTTP ${response.status}`));
+            },
+            onerror: () => reject(new Error('Ошибка сети')),
+            ontimeout: () => reject(new Error('Тайм-аут запроса'))
+        });
+    });
+}
+
+function normalizeAnimeJoyOrigin(value) {
+    if (!value) return null;
+
+    let candidate = value
+        .replace(/\\u002f/gi, '/')
+        .replace(/\\\//g, '/')
+        .replace(/&amp;/gi, '&')
+        .trim()
+        .replace(/[),.;!?]+$/g, '');
+
+    try {
+        candidate = decodeURIComponent(candidate);
+    } catch (_) {
+        // Строка уже декодирована.
+    }
+
+    if (!/^https?:\/\//i.test(candidate)) candidate = 'https://' + candidate;
+
+    try {
+        const parsed = new URL(candidate);
+        const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+        const excludedHosts = ['vk.com', 'vk.ru', 'anime-joy.ru'];
+        if (excludedHosts.some(domain => host === domain || host.endsWith('.' + domain))) return null;
+        return parsed.origin;
+    } catch (_) {
+        return null;
+    }
+}
+
+function extractAnimeJoyOrigin(source, finalUrl = '') {
+    const normalized = String(source || '')
+        .replace(/\\u002f/gi, '/')
+        .replace(/\\\//g, '/')
+        .replace(/&amp;/gi, '&');
+
+    let visibleText = normalized;
+    try {
+        visibleText += '\n' + new DOMParser().parseFromString(normalized, 'text/html').body.textContent;
+    } catch (_) {
+        // Для JSON или повреждённого HTML достаточно исходного текста.
+    }
+
+    // Сначала ищем адрес рядом со словами из постов о смене зеркала.
+    const mirrorNotice = /(?:используйте|нов(?:ое|ый)\s+(?:зеркало|адрес)|зеркал[оа])[^\n\r]{0,160}?(https?:\/\/)?([a-z0-9](?:[a-z0-9-]*\.)+[a-z]{2,})(?:\/[^\s"'<>]*)?/gi;
+    for (const match of visibleText.matchAll(mirrorNotice)) {
+        const origin = normalizeAnimeJoyOrigin((match[1] || 'https://') + match[2]);
+        if (origin) return origin;
+    }
+
+    // Запасной вариант: домен с узнаваемым именем AnimeJoy/OtakuJoy.
+    const brandedDomain = /(?:https?:\/\/)?(?:[a-z0-9-]+\.)*(?:anime-?joy|otaku-?joy)[a-z0-9-]*\.[a-z]{2,}(?:\/[^\s"'<>]*)?/gi;
+    for (const match of visibleText.matchAll(brandedDomain)) {
+        const origin = normalizeAnimeJoyOrigin(match[0]);
+        if (origin) return origin;
+    }
+
+    // Если постоянный сайт перенаправил запрос, берём конечный домен.
+    return normalizeAnimeJoyOrigin(finalUrl);
+}
+
+async function resolveAnimeJoyOrigin(title = '', forceRefresh = false) {
+    const cached = GM_getValue(ANIME_JOY_CACHE_KEY, null);
+    if (!forceRefresh && cached?.origin && Date.now() - cached.checkedAt < ANIME_JOY_CACHE_TTL) {
+        return cached.origin;
+    }
+
+    if (animeJoyOriginRequest) return animeJoyOriginRequest;
+
+    animeJoyOriginRequest = (async () => {
+        const sources = [
+            'https://vk.com/animejoyru',
+            title ? makeDleSearchUrl('https://www.anime-joy.ru', title) : 'https://www.anime-joy.ru/',
+            'https://www.anime-joy.ru/'
+        ];
+
+        for (const source of sources) {
+            try {
+                const response = await requestPage(source);
+                const origin = extractAnimeJoyOrigin(response.responseText, response.finalUrl);
+                if (origin) {
+                    GM_setValue(ANIME_JOY_CACHE_KEY, { origin, checkedAt: Date.now() });
+                    return origin;
+                }
+            } catch (error) {
+                console.debug(`[Shiki New Anime Links] Не удалось проверить ${source}:`, error);
+            }
+        }
+
+        return cached?.origin || ANIME_JOY_FALLBACK_ORIGIN;
+    })().finally(() => {
+        animeJoyOriginRequest = null;
+    });
+
+    return animeJoyOriginRequest;
+}
+
+function makeDleSearchUrl(origin, title) {
+    return `${origin}/index.php?do=search&subaction=search&story=${encodeURIComponent(title)}`;
+}
+
+async function updateAnimeJoyLink(link, title) {
+    const cached = GM_getValue(ANIME_JOY_CACHE_KEY, null);
+    const initialOrigin = cached?.origin || ANIME_JOY_FALLBACK_ORIGIN;
+    link.href = makeDleSearchUrl(initialOrigin, title);
+    link.title = 'Зеркало AnimeJoy обновляется автоматически';
+
+    const actualOrigin = await resolveAnimeJoyOrigin(title);
+    if (link.isConnected) link.href = makeDleSearchUrl(actualOrigin, title);
 }
 
 function newLinks() {
@@ -56,7 +195,7 @@ function newLinks() {
     let anilibriaL = 'https://darklibria.it/';
     let kodikL = 'https://kodikdb.com/find-player?shikimoriID=';
     let ruTrImg = 'https://imgur.com/HIExDt8.png';
-    let animeJoy = 'https://otakujoy.fun/index.php?do=search&subaction=search&story=' 
+    let yummyAnimeL = 'https://yummyanime.tv';
     let bckgrSize = 'background-size: 19px 19px; -webkit-background-size: 19px 19px;';
 
     let style_anime = `
@@ -71,6 +210,7 @@ function newLinks() {
 #smotretLink.b-link:before { background: url(https://smotret-anime.online/favicon.ico) no-repeat; }
 #animegoLink.b-link:before { background: url(https://animego.org/favicon.ico) no-repeat; }
 #animeJoy.b-link:before { background: url(https://www.anime-joy.ru/favicon.ico) no-repeat; }
+#yummyAnime.b-link:before { background: url(https://yummyanime.tv/favicon.ico) no-repeat; }
 #sovetRom.b-link:before { background: url(https://sovetromantica.com/favicon.ico) no-repeat; }
 #linkAnilibria.b-link:before { background: url(https://darklibria.it/favicon.ico) no-repeat; }
 #linkNyaa.b-link:before, #linkNyaaOST.b-link:before { background: url(https://www.google.com/s2/favicons?sz=64&domain_url=https://nyaa.si) no-repeat; }
@@ -198,12 +338,21 @@ function newLinks() {
         }
 
         if (settings.getOption('animeJoy') && !document.getElementById("animeJoy")) {
-            let animegoLink = parent.childNodes[1].cloneNode(true);
-            animegoLink.children[0].href = animeJoy + (titleRu || title);
-            animegoLink.children[0].target = "_blank";
-            animegoLink.children[0].id = "animeJoy";
-            animegoLink.children[0].textContent = "AnimeJoy";
-            parent.insertBefore(animegoLink, parent.childNodes[1]);
+            let animeJoyLink = parent.childNodes[1].cloneNode(true);
+            animeJoyLink.children[0].target = "_blank";
+            animeJoyLink.children[0].id = "animeJoy";
+            animeJoyLink.children[0].textContent = "AnimeJoy";
+            updateAnimeJoyLink(animeJoyLink.children[0], titleRu || title);
+            parent.insertBefore(animeJoyLink, parent.childNodes[1]);
+        }
+
+        if (settings.getOption('yummyAnime') && !document.getElementById("yummyAnime")) {
+            let yummyAnimeLink = parent.childNodes[1].cloneNode(true);
+            yummyAnimeLink.children[0].href = makeDleSearchUrl(yummyAnimeL, titleRu || title);
+            yummyAnimeLink.children[0].target = "_blank";
+            yummyAnimeLink.children[0].id = "yummyAnime";
+            yummyAnimeLink.children[0].textContent = "YummyAnime";
+            parent.insertBefore(yummyAnimeLink, parent.childNodes[1]);
         }
 
         if (settings.getOption('anilibria') && !document.getElementById("linkAnilibria")) {
