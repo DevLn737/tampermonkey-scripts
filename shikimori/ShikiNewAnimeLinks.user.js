@@ -3,7 +3,7 @@
 // @author       Chortowod (https://openuserjs.org/scripts/Chortowod)
 // @description  Добавляет пункты "Rutracker", "NNMClub", "MangaLib", "RanobeLib" и др. в список "На других сайтах" для поиска аниме|манги|ранобэ на торрентах/сайтах
 // @namespace    http://shikimori.me/
-// @version      1.0.17
+// @version      1.0.18
 // @match        *://shikimori.org/*
 // @match        *://shikimori.one/*
 // @match        *://shikimori.me/*
@@ -51,8 +51,9 @@ function initSettings() {
 }
 
 const ANIME_JOY_FALLBACK_ORIGIN = 'https://otakujoy.fun';
-const ANIME_JOY_CACHE_KEY = 'animeJoyMirror';
+const ANIME_JOY_CACHE_KEY = 'animeJoyMirrorV2';
 const ANIME_JOY_CACHE_TTL = 6 * 60 * 60 * 1000;
+const ANIME_JOY_REJECTED_HOSTS = new Set(['animejoy.xyz']);
 let animeJoyOriginRequest;
 
 function requestPage(url) {
@@ -94,41 +95,124 @@ function normalizeAnimeJoyOrigin(value) {
         const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
         const excludedHosts = ['vk.com', 'vk.ru', 'anime-joy.ru'];
         if (excludedHosts.some(domain => host === domain || host.endsWith('.' + domain))) return null;
+        if ([...ANIME_JOY_REJECTED_HOSTS].some(domain => host === domain || host.endsWith('.' + domain))) return null;
         return parsed.origin;
     } catch (_) {
         return null;
     }
 }
 
-function extractAnimeJoyOrigin(source, finalUrl = '') {
-    const normalized = String(source || '')
+function normalizeAnimeJoySource(source) {
+    return String(source || '')
         .replace(/\\u002f/gi, '/')
+        .replace(/\\u([0-9a-f]{4})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
         .replace(/\\\//g, '/')
         .replace(/&amp;/gi, '&');
+}
 
-    let visibleText = normalized;
+function findAnimeJoyOrigins(text, requireNotice = false) {
+    const origins = [];
+    const addOrigin = value => {
+        const origin = normalizeAnimeJoyOrigin(value);
+        if (origin && !origins.includes(origin)) origins.push(origin);
+    };
+
+    const mirrorNotice = /(?:используйте|нов(?:ое|ый)\s+(?:зеркало|адрес)|зеркал[оа])[^\n\r]{0,200}?(https?:\/\/)?([a-z0-9](?:[a-z0-9-]*\.)+[a-z]{2,})/gi;
+    for (const match of String(text || '').matchAll(mirrorNotice)) {
+        addOrigin((match[1] || 'https://') + match[2]);
+    }
+
+    if (requireNotice || origins.length) return origins;
+
+    const brandedDomain = /(?:https?:\/\/)?(?:[a-z0-9-]+\.)*(?:anime-?joy|otaku-?joy)[a-z0-9-]*\.[a-z]{2,}/gi;
+    for (const match of String(text || '').matchAll(brandedDomain)) addOrigin(match[0]);
+    return origins;
+}
+
+function extractPostId(value) {
+    const text = String(value || '');
+    const wallMatch = text.match(/wall-?\d+_(\d+)/i);
+    if (wallMatch) return Number(wallMatch[1]);
+
+    const pairMatch = text.match(/^-?\d+_(\d+)$/);
+    if (pairMatch) return Number(pairMatch[1]);
+
+    const postMatch = text.match(/^post[-_]?-?\d+_(\d+)$/i);
+    return postMatch ? Number(postMatch[1]) : null;
+}
+
+function extractLatestVkPostOrigin(source) {
+    const normalized = normalizeAnimeJoySource(source);
+    const candidates = [];
+
+    // Сначала читаем настоящие контейнеры постов, если VK вернул HTML-ленту.
     try {
-        visibleText += '\n' + new DOMParser().parseFromString(normalized, 'text/html').body.textContent;
+        const doc = new DOMParser().parseFromString(normalized, 'text/html');
+        const postElements = doc.querySelectorAll('[data-post-id], [data-post_id], [id^="post-"], [id^="post_"]');
+        for (const post of postElements) {
+            const idValues = [
+                post.getAttribute('data-post-id'),
+                post.getAttribute('data-post_id'),
+                post.id,
+                post.querySelector('a[href*="wall-"]')?.getAttribute('href')
+            ];
+            const postId = idValues.map(extractPostId).find(Number.isFinite);
+            if (!Number.isFinite(postId)) continue;
+
+            for (const origin of findAnimeJoyOrigins(post.textContent, true)) {
+                candidates.push({ postId, origin });
+            }
+        }
     } catch (_) {
-        // Для JSON или повреждённого HTML достаточно исходного текста.
+        // Ниже есть разбор встроенных JSON/HTML-данных без DOM.
     }
 
-    // Сначала ищем адрес рядом со словами из постов о смене зеркала.
-    const mirrorNotice = /(?:используйте|нов(?:ое|ый)\s+(?:зеркало|адрес)|зеркал[оа])[^\n\r]{0,160}?(https?:\/\/)?([a-z0-9](?:[a-z0-9-]*\.)+[a-z]{2,})(?:\/[^\s"'<>]*)?/gi;
-    for (const match of visibleText.matchAll(mirrorNotice)) {
-        const origin = normalizeAnimeJoyOrigin((match[1] || 'https://') + match[2]);
-        if (origin) return origin;
+    // VK может вернуть посты внутри JSON. Делим ответ на блоки по явным ID постов.
+    const markers = [];
+    const markerPattern = /wall-?\d+_(\d+)|["']post_id["']\s*:\s*(\d+)/gi;
+    for (const match of normalized.matchAll(markerPattern)) {
+        const postId = Number(match[1] || match[2]);
+        if (Number.isFinite(postId)) markers.push({ index: match.index, postId });
     }
 
-    // Запасной вариант: домен с узнаваемым именем AnimeJoy/OtakuJoy.
-    const brandedDomain = /(?:https?:\/\/)?(?:[a-z0-9-]+\.)*(?:anime-?joy|otaku-?joy)[a-z0-9-]*\.[a-z]{2,}(?:\/[^\s"'<>]*)?/gi;
-    for (const match of visibleText.matchAll(brandedDomain)) {
-        const origin = normalizeAnimeJoyOrigin(match[0]);
-        if (origin) return origin;
+    const markerByPostId = new Map();
+    for (const marker of markers) {
+        if (!markerByPostId.has(marker.postId)) markerByPostId.set(marker.postId, marker);
+    }
+    const uniqueMarkers = [...markerByPostId.values()].sort((a, b) => a.index - b.index);
+
+    for (let index = 0; index < uniqueMarkers.length; index++) {
+        const marker = uniqueMarkers[index];
+        const end = uniqueMarkers[index + 1]?.index ?? Math.min(normalized.length, marker.index + 12000);
+        const postText = normalized.slice(marker.index, end);
+        for (const origin of findAnimeJoyOrigins(postText, true)) {
+            candidates.push({ postId: marker.postId, origin });
+        }
     }
 
-    // Если постоянный сайт перенаправил запрос, берём конечный домен.
-    return normalizeAnimeJoyOrigin(finalUrl);
+    // Закреплённый старый пост может идти первым в HTML, поэтому решает максимальный ID.
+    candidates.sort((a, b) => b.postId - a.postId);
+    return candidates[0]?.origin || null;
+}
+
+function extractAnimeJoySiteOrigin(source, finalUrl = '') {
+    const redirectedOrigin = normalizeAnimeJoyOrigin(finalUrl);
+    if (redirectedOrigin && /(?:anime-?joy|otaku-?joy)/i.test(new URL(redirectedOrigin).hostname)) {
+        return redirectedOrigin;
+    }
+
+    const normalized = normalizeAnimeJoySource(source);
+    const counts = new Map();
+    const hrefPattern = /<a\b[^>]*\bhref\s*=\s*(["'])(.*?)\1/gi;
+    for (const match of normalized.matchAll(hrefPattern)) {
+        const origin = normalizeAnimeJoyOrigin(match[2]);
+        if (!origin || !/(?:anime-?joy|otaku-?joy)/i.test(new URL(origin).hostname)) continue;
+        counts.set(origin, (counts.get(origin) || 0) + 1);
+    }
+
+    const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    if (!ranked.length || (ranked[1] && ranked[0][1] === ranked[1][1])) return null;
+    return ranked[0][0];
 }
 
 async function resolveAnimeJoyOrigin(title = '', forceRefresh = false) {
@@ -141,21 +225,23 @@ async function resolveAnimeJoyOrigin(title = '', forceRefresh = false) {
 
     animeJoyOriginRequest = (async () => {
         const sources = [
-            'https://vk.com/animejoyru',
-            title ? makeDleSearchUrl('https://www.anime-joy.ru', title) : 'https://www.anime-joy.ru/',
-            'https://www.anime-joy.ru/'
+            { type: 'vk', url: 'https://vk.com/animejoyru' },
+            { type: 'site', url: title ? makeDleSearchUrl('https://www.anime-joy.ru', title) : 'https://www.anime-joy.ru/' },
+            { type: 'site', url: 'https://www.anime-joy.ru/' }
         ];
 
         for (const source of sources) {
             try {
-                const response = await requestPage(source);
-                const origin = extractAnimeJoyOrigin(response.responseText, response.finalUrl);
+                const response = await requestPage(source.url);
+                const origin = source.type === 'vk'
+                    ? extractLatestVkPostOrigin(response.responseText)
+                    : extractAnimeJoySiteOrigin(response.responseText, response.finalUrl);
                 if (origin) {
                     GM_setValue(ANIME_JOY_CACHE_KEY, { origin, checkedAt: Date.now() });
                     return origin;
                 }
             } catch (error) {
-                console.debug(`[Shiki New Anime Links] Не удалось проверить ${source}:`, error);
+                console.debug(`[Shiki New Anime Links] Не удалось проверить ${source.url}:`, error);
             }
         }
 
