@@ -1,24 +1,25 @@
 // ==UserScript==
 // @name         Shiki Anime OP/ED
-// @version      1.2.0
-// @description  Отображает опенинги и эндинги на странице аниме
 // @namespace    https://shikimori.rip/
-// @author       ShaDream & Chortowod
+// @version      1.2.1
 // @match        *://shikimori.org/*
 // @match        *://shikimori.one/*
 // @match        *://shikimori.me/*
+// @match        *://shikimori.io/*
 // @match        *://shiki.one/*
 // @match        *://shikimori.rip/*
 // @match        *://shikimori.fi/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain_url=https://shikimori.rip
+// @description  Отображает опенинги и эндинги на странице аниме
+// @author       ShaDream & Chortowod
 // @connect      myanimelist.net
 // @connect      www.myanimelist.net
-// @icon         https://shikimori.rip/favicon.ico
 // @copyright    2026, ShaDream, Chortowod (https://openuserjs.org/users/ShaDream)
 // @require      https://gist.githubusercontent.com/Chortowod/814b010c68fc97e5f900df47bf79059c/raw/chtw_settings.js?v1
 // @grant        GM_xmlhttpRequest
 // @license      MIT
-// @downloadURL  https://github.com/DevLn737/tampermonkey-scripts/raw/refs/heads/main/shikimori/ShikiAnimeOP&ED.user.js
-// @updateURL    https://github.com/DevLn737/tampermonkey-scripts/raw/refs/heads/main/shikimori/ShikiAnimeOP&ED.user.js
+// @downloadURL  https://github.com/DevLn737/tampermonkey-scripts/raw/refs/heads/main/shikimori/ShikiAnimeOP%26ED.user.js
+// @updateURL    https://github.com/DevLn737/tampermonkey-scripts/raw/refs/heads/main/shikimori/ShikiAnimeOP%26ED.user.js
 // ==/UserScript==
 
 const siteName = window.location.origin;
