@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Shiki New Anime Links (Ruracker|MangaLib|Nyaa|Other)
 // @namespace    https://shikimori.rip/
-// @version      1.0.19
+// @version      1.0.20
 // @match        *://shikimori.org/*
 // @match        *://shikimori.one/*
 // @match        *://shikimori.me/*
@@ -258,6 +258,23 @@ function makeDleSearchUrl(origin, title) {
     return `${origin}/index.php?do=search&subaction=search&story=${encodeURIComponent(title)}`;
 }
 
+function createExternalLink(parent, id, text, url = '') {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'b-external_link b-menu-line';
+
+    const link = document.createElement('a');
+    link.className = 'b-link';
+    link.id = id;
+    link.textContent = text;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    if (url) link.href = url;
+
+    wrapper.appendChild(link);
+    parent.insertBefore(wrapper, parent.children[1] || null);
+    return link;
+}
+
 async function updateAnimeJoyLink(link, title) {
     const cached = GM_getValue(ANIME_JOY_CACHE_KEY, null);
     const initialOrigin = cached?.origin || ANIME_JOY_FALLBACK_ORIGIN;
@@ -326,75 +343,44 @@ function newLinks() {
 
     let title = document.querySelector("meta[property='og:title']").getAttribute('content');
     let titleRu = document.querySelector("meta[itemprop='alternativeHeadline']").getAttribute('content');
-    let parent = document.querySelector(".subheadline.m8").parentElement;
-    let rutrackerLink = parent.childNodes[1].cloneNode(true);
-    let rutrackerLinkRu = parent.childNodes[1].cloneNode(true);
-    rutrackerLink.children[0].target = "_blank";
-    rutrackerLink.children[0].textContent = "Rutracker (англ. название)";
-    rutrackerLinkRu.children[0].target = "_blank";
-    rutrackerLinkRu.children[0].textContent = "Rutracker (рус. название)";
+    const externalLinksHeadline = [...document.querySelectorAll('.subheadline.m8')]
+        .find(element => element.textContent.trim() === 'На других сайтах');
+    if (!externalLinksHeadline) return false;
+    const parent = externalLinksHeadline.parentElement;
 
     if (location.href.includes("/mangas/") && !document.getElementById('linkRutracker')) {
         if (settings.getOption('mangaLib') && !document.querySelector(".mangalib") && !document.getElementById('linkMangaFind')) {
-            let mangaFindLink = parent.childNodes[1].cloneNode(true);
-            mangaFindLink.children[0].href = "https://mangalib.me/manga-list?dir=desc&name=" + title + "&sort=rate";
-            mangaFindLink.children[0].target = "_blank";
-            mangaFindLink.children[0].id = "linkMangaFind";
-            mangaFindLink.children[0].textContent = "MangaLib";
-            parent.insertBefore(mangaFindLink, parent.childNodes[1]);
+            createExternalLink(parent, 'linkMangaFind', 'MangaLib', "https://mangalib.me/manga-list?dir=desc&name=" + title + "&sort=rate");
         }
         if (settings.getOption('rutracker')) {
-            rutrackerLink.children[0].href = ruTrackerL + "2461,2462,2463,2464,2465,2473,281,862&nm=" + title;
-            rutrackerLink.children[0].id = "linkRutracker";
-            parent.insertBefore(rutrackerLink, parent.childNodes[1]);
+            createExternalLink(parent, 'linkRutracker', 'Rutracker (англ. название)', ruTrackerL + "2461,2462,2463,2464,2465,2473,281,862&nm=" + title);
         }
         settings.addStyle(style_manga);
     }
 
     if (location.href.includes("/ranobe/") && !document.getElementById('linkRutracker')) {
         if (settings.getOption('ranobeLib') && !document.querySelector('.ranobelib') && !document.getElementById('linkRanobeLib')) {
-            let ranobeLibLink = parent.childNodes[1].cloneNode(true);
-            ranobeLibLink.children[0].href = "https://ranobelib.me/manga-list?sort=rate&dir=desc&name=" + title;
-            ranobeLibLink.children[0].target = "_blank";
-            ranobeLibLink.children[0].id = "linkRanobeLib";
-            ranobeLibLink.children[0].textContent = "RanobeLib";
-            parent.insertBefore(ranobeLibLink, parent.childNodes[1]);
+            createExternalLink(parent, 'linkRanobeLib', 'RanobeLib', "https://ranobelib.me/manga-list?sort=rate&dir=desc&name=" + title);
         }
 
         if (settings.getOption('ranobeHub') && !document.getElementById('linkRanobeHub')) {
-            let ranobeHubLink = parent.childNodes[1].cloneNode(true);
-            ranobeHubLink.children[0].href = "https://ranobehub.org/search?query=" + title;
-            ranobeHubLink.children[0].target = "_blank";
-            ranobeHubLink.children[0].id = "linkRanobeHub";
-            ranobeHubLink.children[0].textContent = "RanobeHub (главы)";
-            parent.insertBefore(ranobeHubLink, parent.childNodes[1]);
+            createExternalLink(parent, 'linkRanobeHub', 'RanobeHub (главы)', "https://ranobehub.org/search?query=" + title);
         }
 
         if (settings.getOption('rulate') && !document.getElementById('linkRanobeRulate')) {
-            let ranobeRulateLink = parent.childNodes[1].cloneNode(true);
-            ranobeRulateLink.children[0].href = "https://tl.rulate.ru/search?from=header&t=" + title;
-            ranobeRulateLink.children[0].target = "_blank";
-            ranobeRulateLink.children[0].id = "linkRanobeRulate";
-            ranobeRulateLink.children[0].textContent = "Rulate";
-            parent.insertBefore(ranobeRulateLink, parent.childNodes[1]);
+            createExternalLink(parent, 'linkRanobeRulate', 'Rulate', "https://tl.rulate.ru/search?from=header&t=" + title);
         }
 
         if (settings.getOption('rutracker')) {
-            rutrackerLink.children[0].href = ruTrackerL + "2458&nm=" + title;
-            rutrackerLink.children[0].id = "linkRutracker";
-            parent.insertBefore(rutrackerLink, parent.childNodes[1]);
+            createExternalLink(parent, 'linkRutracker', 'Rutracker (англ. название)', ruTrackerL + "2458&nm=" + title);
         }
         settings.addStyle(style_ranobe);
     }
 
     if (location.href.includes("/animes/") && !document.getElementById('linkRutracker')) {
         if (settings.getOption('funSubs') && !document.querySelector(".kage_project") && !document.getElementById("linkFunSubs")) {
-            let funSubsLink = parent.childNodes[1].cloneNode(true);
-            funSubsLink.children[0].id = "linkFunSubs";
-            funSubsLink.children[0].target = "_blank";
-            funSubsLink.children[0].textContent = "FunSubs";
-            funSubsLink.children[0].removeAttribute("href");
-            funSubsLink.children[0].onclick = function () {
+            const funSubsLink = createExternalLink(parent, 'linkFunSubs', 'FunSubs');
+            funSubsLink.onclick = function () {
                 let dummy = document.createElement("textarea");
                 document.body.appendChild(dummy);
                 dummy.value = title;
@@ -403,136 +389,67 @@ function newLinks() {
                 document.body.removeChild(dummy);
                 window.open("http://www.fansubs.ru/search.php", "_black");
             };
-            parent.insertBefore(funSubsLink, parent.childNodes[1]);
         }
 
         if (settings.getOption('smotretAnime') && !document.getElementById("smotretLink")) {
-            let smotretLink = parent.childNodes[1].cloneNode(true);
-            smotretLink.children[0].href = "https://smotret-anime.online/catalog/search?q=" + title;
-            smotretLink.children[0].target = "_blank";
-            smotretLink.children[0].id = "smotretLink";
-            smotretLink.children[0].textContent = "Smotret Anime";
-            parent.insertBefore(smotretLink, parent.childNodes[1]);
+            createExternalLink(parent, 'smotretLink', 'Smotret Anime', "https://smotret-anime.online/catalog/search?q=" + title);
         }
 
         if (settings.getOption('animego') && !document.getElementById("animegoLink")) {
-            let animegoLink = parent.childNodes[1].cloneNode(true);
-            animegoLink.children[0].href = "https://animego.org/search/anime?q=" + (titleRu || title);
-            animegoLink.children[0].target = "_blank";
-            animegoLink.children[0].id = "animegoLink";
-            animegoLink.children[0].textContent = "AnimeGo";
-            parent.insertBefore(animegoLink, parent.childNodes[1]);
+            createExternalLink(parent, 'animegoLink', 'AnimeGo', "https://animego.org/search/anime?q=" + (titleRu || title));
         }
 
         if (settings.getOption('animeJoy') && !document.getElementById("animeJoy")) {
-            let animeJoyLink = parent.childNodes[1].cloneNode(true);
-            animeJoyLink.children[0].target = "_blank";
-            animeJoyLink.children[0].id = "animeJoy";
-            animeJoyLink.children[0].textContent = "AnimeJoy";
-            updateAnimeJoyLink(animeJoyLink.children[0], titleRu || title);
-            parent.insertBefore(animeJoyLink, parent.childNodes[1]);
+            const animeJoyLink = createExternalLink(parent, 'animeJoy', 'AnimeJoy');
+            updateAnimeJoyLink(animeJoyLink, titleRu || title);
         }
 
         if (settings.getOption('yummyAnime') && !document.getElementById("yummyAnime")) {
-            let yummyAnimeLink = parent.childNodes[1].cloneNode(true);
-            yummyAnimeLink.children[0].href = makeDleSearchUrl(yummyAnimeL, titleRu || title);
-            yummyAnimeLink.children[0].target = "_blank";
-            yummyAnimeLink.children[0].id = "yummyAnime";
-            yummyAnimeLink.children[0].textContent = "YummyAnime";
-            parent.insertBefore(yummyAnimeLink, parent.childNodes[1]);
+            createExternalLink(parent, 'yummyAnime', 'YummyAnime', makeDleSearchUrl(yummyAnimeL, titleRu || title));
         }
 
         if (settings.getOption('anilibria') && !document.getElementById("linkAnilibria")) {
-            let animegoLink = parent.childNodes[1].cloneNode(true);
-            animegoLink.children[0].href = anilibriaL + 'search?find=' + (title);
-            animegoLink.children[0].target = "_blank";
-            animegoLink.children[0].id = "linkAnilibria";
-            animegoLink.children[0].textContent = "AniLibria";
-            parent.insertBefore(animegoLink, parent.childNodes[1]);
+            createExternalLink(parent, 'linkAnilibria', 'AniLibria', anilibriaL + 'search?find=' + title);
         }
 
         if (settings.getOption('animeLib') && !document.getElementById("animeLib")) {
-            let animeLibLink = parent.childNodes[1].cloneNode(true);
-            animeLibLink.children[0].href = animeLibL + title;
-            animeLibLink.children[0].target = "_blank";
-            animeLibLink.children[0].id = "animeLib";
-            animeLibLink.children[0].textContent = "Animelib";
-            parent.insertBefore(animeLibLink, parent.childNodes[1]);
+            createExternalLink(parent, 'animeLib', 'Animelib', animeLibL + title);
         }
 
         if (settings.getOption('sovetRom') && !document.getElementById("sovetRom")) {
-            let sovetRomLink = parent.childNodes[1].cloneNode(true);
-            sovetRomLink.children[0].href = sovetRomL + title;
-            sovetRomLink.children[0].target = "_blank";
-            sovetRomLink.children[0].id = "sovetRom";
-            sovetRomLink.children[0].textContent = "SovetRomantica";
-            parent.insertBefore(sovetRomLink, parent.childNodes[1]);
+            createExternalLink(parent, 'sovetRom', 'SovetRomantica', sovetRomL + title);
         }
 
         if (settings.getOption('kodik') && !document.getElementById("linkKodik")) {
-            let kodik = parent.childNodes[1].cloneNode(true);
-            kodik.children[0].href = kodikL + getAnimeID();
-            kodik.children[0].target = "_blank";
-            kodik.children[0].id = "linkKodik";
-            kodik.children[0].textContent = "Kodik (онлайн просмотр)";
-            parent.insertBefore(kodik, parent.childNodes[1]);
+            createExternalLink(parent, 'linkKodik', 'Kodik (онлайн просмотр)', kodikL + getAnimeID());
         }
 
         if (settings.getOption('nnmClub') && !document.getElementById("NNMLink")) {
-            let nnmLink = parent.childNodes[1].cloneNode(true);
-            nnmLink.children[0].href = nnmClubL + "620,621,622,623,624,625,626,627,628,632,634,635,638,644,646&nm=" + title;
-            nnmLink.children[0].target = "_blank";
-            nnmLink.children[0].id = "NNMLink";
-            nnmLink.children[0].textContent = "NNM-Club";
-            parent.insertBefore(nnmLink, parent.childNodes[1]);
+            createExternalLink(parent, 'NNMLink', 'NNM-Club', nnmClubL + "620,621,622,623,624,625,626,627,628,632,634,635,638,644,646&nm=" + title);
         }
 
         if (settings.getOption('eraiRaws') && !document.getElementById("eraiRaws")) {
-            let eraiLink = parent.childNodes[1].cloneNode(true);
-            eraiLink.children[0].href = eraiRawsL + title;
-            eraiLink.children[0].target = "_blank";
-            eraiLink.children[0].id = "eraiRaws";
-            eraiLink.children[0].textContent = "Erai Raws";
-            parent.insertBefore(eraiLink, parent.childNodes[1]);
+            createExternalLink(parent, 'eraiRaws', 'Erai Raws', eraiRawsL + title);
         }
 
         if (settings.getOption('nyaaOST') && !document.getElementById("linkNyaaOST")) {
-            let nyaaLinkOST = parent.childNodes[1].cloneNode(true);
-            nyaaLinkOST.children[0].href = "https://nyaa.si/?f=0&c=2_0&q=" + title;
-            nyaaLinkOST.children[0].target = "_blank";
-            nyaaLinkOST.children[0].id = "linkNyaaOST";
-            nyaaLinkOST.children[0].textContent = "Nyaa.si [OST]";
-            parent.insertBefore(nyaaLinkOST, parent.childNodes[1]);
+            createExternalLink(parent, 'linkNyaaOST', 'Nyaa.si [OST]', "https://nyaa.si/?f=0&c=2_0&q=" + title);
         }
 
         if (settings.getOption('nyaa') && !document.getElementById("linkNyaa")) {
-            let nyaaLink = parent.childNodes[1].cloneNode(true);
-            nyaaLink.children[0].href = "https://nyaa.si/?f=0&c=0_0&q=" + title;
-            nyaaLink.children[0].target = "_blank";
-            nyaaLink.children[0].id = "linkNyaa";
-            nyaaLink.children[0].textContent = "Nyaa.si";
-            parent.insertBefore(nyaaLink, parent.childNodes[1]);
+            createExternalLink(parent, 'linkNyaa', 'Nyaa.si', "https://nyaa.si/?f=0&c=0_0&q=" + title);
         }
 
         if (settings.getOption('rutrackerOST') && !document.getElementById("linkRutrackerOST")) {
-            let rutrackerLinkOST = parent.childNodes[1].cloneNode(true);
-            rutrackerLinkOST.children[0].href = ruTrackerL + "1388,282&nm=" + title;
-            rutrackerLinkOST.children[0].target = "_blank";
-            rutrackerLinkOST.children[0].id = "linkRutrackerOST";
-            rutrackerLinkOST.children[0].textContent = "Rutracker [OST]";
-            parent.insertBefore(rutrackerLinkOST, parent.childNodes[1]);
+            createExternalLink(parent, 'linkRutrackerOST', 'Rutracker [OST]', ruTrackerL + "1388,282&nm=" + title);
         }
 
         if (settings.getOption('rutrackerRU') && !document.getElementById("linkRutrackerRu")) {
-            rutrackerLinkRu.children[0].href = ruTrackerL + "1105,1106,1386,1387,1389,1390,1391,1642,2484,2491,2544,33,404,599,809,893&nm=" + titleRu;
-            rutrackerLinkRu.children[0].id = "linkRutrackerRu";
-            parent.insertBefore(rutrackerLinkRu, parent.childNodes[1]);
+            createExternalLink(parent, 'linkRutrackerRu', 'Rutracker (рус. название)', ruTrackerL + "1105,1106,1386,1387,1389,1390,1391,1642,2484,2491,2544,33,404,599,809,893&nm=" + titleRu);
         }
 
         if (settings.getOption('rutracker')) {
-            rutrackerLink.children[0].href = ruTrackerL + "1105,1106,1386,1387,1389,1390,1391,1642,2484,2491,2544,33,404,599,809,893&nm=" + title;
-            rutrackerLink.children[0].id = "linkRutracker";
-            parent.insertBefore(rutrackerLink, parent.childNodes[1]);
+            createExternalLink(parent, 'linkRutracker', 'Rutracker (англ. название)', ruTrackerL + "1105,1106,1386,1387,1389,1390,1391,1642,2484,2491,2544,33,404,599,809,893&nm=" + title);
         }
         settings.addStyle(style_anime);
     }
