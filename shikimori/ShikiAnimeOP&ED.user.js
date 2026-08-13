@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Shiki Anime OP/ED
 // @namespace    https://shikimori.rip/
-// @version      1.2.1
+// @version      1.3.0
 // @match        *://shikimori.org/*
 // @match        *://shikimori.one/*
 // @match        *://shikimori.me/*
@@ -14,6 +14,7 @@
 // @author       ShaDream & Chortowod
 // @connect      myanimelist.net
 // @connect      www.myanimelist.net
+// @connect      api.animethemes.moe
 // @copyright    2026, ShaDream, Chortowod (https://openuserjs.org/users/ShaDream)
 // @require      https://gist.githubusercontent.com/Chortowod/814b010c68fc97e5f900df47bf79059c/raw/chtw_settings.js?v1
 // @grant        GM_xmlhttpRequest
@@ -64,7 +65,22 @@ function getFallbackTitle() {
     return document.querySelector('meta[property="og:title"]')?.content?.trim() || '';
 }
 
-async function getEnglishTitle(animeId) {
+function toTitles(value) {
+    const values = Array.isArray(value) ? value : [value];
+    return values.filter(title => typeof title === 'string' && title.trim()).map(title => title.trim());
+}
+
+function uniqueTitles(titles) {
+    return [...new Map(titles.map(title => [title.toLocaleLowerCase(), title])).values()];
+}
+
+function getFallbackTitles() {
+    return uniqueTitles(getFallbackTitle().split(/\s+\/\s+/).map(title => title.trim()).filter(Boolean));
+}
+
+async function getAnimeInfo(animeId) {
+    const fallbackTitles = getFallbackTitles();
+
     try {
         const response = await fetch(`${siteName}/api/animes/${animeId}`, {
             headers: { Accept: 'application/json' }
@@ -72,10 +88,23 @@ async function getEnglishTitle(animeId) {
         if (!response.ok) throw new Error(`Shikimori API returned HTTP ${response.status}`);
 
         const anime = await response.json();
-        return anime.english?.trim() || '';
+        const englishTitles = toTitles(anime.english);
+        const titles = uniqueTitles([
+            ...englishTitles,
+            ...toTitles(anime.name),
+            ...toTitles(anime.synonyms),
+            ...toTitles(anime.japanese),
+            ...fallbackTitles
+        ]);
+
+        return {
+            searchTitle: englishTitles[0] || toTitles(anime.name)[0] || fallbackTitles[0] || '',
+            titles,
+            year: Number.parseInt(String(anime.aired_on || '').slice(0, 4), 10) || null
+        };
     } catch (error) {
         log('Не удалось получить английское название:', error);
-        return '';
+        return { searchTitle: fallbackTitles[0] || '', titles: fallbackTitles, year: null };
     }
 }
 
@@ -235,22 +264,90 @@ function getMusic(doc, classNames) {
     return songs;
 }
 
-function requestMalPage(animeId) {
+function requestExternalPage(url, animeId, sourceName) {
     return new Promise((resolve, reject) => {
         const request = GM_xmlhttpRequest({
             method: 'GET',
-            url: `https://myanimelist.net/anime/${animeId}`,
+            url,
             timeout: 15000,
             onload: response => {
                 if (response.status >= 200 && response.status < 300) resolve(response.responseText);
-                else reject(new Error(`MyAnimeList returned HTTP ${response.status}`));
+                else reject(new Error(`${sourceName} returned HTTP ${response.status}`));
             },
-            onerror: () => reject(new Error('Ошибка сети при запросе MyAnimeList')),
-            ontimeout: () => reject(new Error('MyAnimeList не ответил за 15 секунд')),
-            onabort: () => reject(new Error('Запрос MyAnimeList отменён'))
+            onerror: () => reject(new Error(`Ошибка сети при запросе ${sourceName}`)),
+            ontimeout: () => reject(new Error(`${sourceName} не ответил за 15 секунд`)),
+            onabort: () => reject(new Error(`Запрос ${sourceName} отменён`))
         });
         activeMalRequest = { animeId, abort: () => request.abort() };
     });
+}
+
+function requestMalPage(animeId) {
+    return requestExternalPage(`https://myanimelist.net/anime/${animeId}`, animeId, 'MyAnimeList');
+}
+
+function normalizeTitle(title) {
+    return String(title || '')
+        .normalize('NFKC')
+        .toLocaleLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, ' ')
+        .trim();
+}
+
+function themeSequence(theme, fallback) {
+    return Number(theme.sequence) || Number(String(theme.slug || '').match(/\d+/)?.[0]) || fallback;
+}
+
+function extractAnimeThemes(anime) {
+    const themes = Array.isArray(anime?.animethemes) ? anime.animethemes : [];
+    const collect = type => themes
+        .filter(theme => theme.type === type && theme.song?.title)
+        .sort((left, right) => themeSequence(left, 1) - themeSequence(right, 1))
+        .map((theme, index) => {
+            const artists = Array.isArray(theme.song.artists)
+                ? theme.song.artists.map(artist => artist?.name).filter(Boolean)
+                : [];
+            const artistText = artists.length ? ` by ${artists.join(', ')}` : '';
+            return `#${themeSequence(theme, index + 1)} ${theme.song.title}${artistText}`;
+        });
+
+    return { openings: collect('OP'), endings: collect('ED') };
+}
+
+function chooseAnimeThemesResult(animeList, titles, year) {
+    const normalizedTitles = new Set(titles.map(normalizeTitle).filter(Boolean));
+    return [...animeList]
+        .filter(anime => Array.isArray(anime.animethemes) && anime.animethemes.length)
+        .sort((left, right) => {
+            const score = anime => {
+                const names = [anime.name, ...(Array.isArray(anime.synonyms) ? anime.synonyms : [])];
+                const exactTitle = names.some(name => normalizedTitles.has(normalizeTitle(name)));
+                return (exactTitle ? 2 : 0) + (year && anime.year === year ? 1 : 0);
+            };
+            return score(right) - score(left);
+        })[0] || null;
+}
+
+async function requestAnimeThemes(animeId, animeInfo) {
+    const titles = uniqueTitles(animeInfo.titles).slice(0, 3);
+
+    for (const title of titles) {
+        const url = new URL('https://api.animethemes.moe/anime');
+        url.searchParams.set('q', title);
+        url.searchParams.set('include', 'animethemes.song.artists,synonyms');
+
+        try {
+            const responseText = await requestExternalPage(url.toString(), animeId, 'AnimeThemes');
+            const data = JSON.parse(responseText);
+            const anime = chooseAnimeThemesResult(data.anime || [], titles, animeInfo.year);
+            const themes = extractAnimeThemes(anime);
+            if (themes.openings.length || themes.endings.length) return themes;
+        } catch (error) {
+            log(`AnimeThemes не вернул данные для «${title}»:`, error);
+        }
+    }
+
+    return { openings: [], endings: [] };
 }
 
 async function loadMal() {
@@ -265,17 +362,28 @@ async function loadMal() {
     log(`Загрузка OP/ED для аниме ${animeId}`);
 
     try {
-        const [malHtml, englishTitle] = await Promise.all([
-            requestMalPage(animeId),
-            getEnglishTitle(animeId)
-        ]);
+        const animeInfoPromise = getAnimeInfo(animeId);
+        let openings = [];
+        let endings = [];
+
+        try {
+            const malHtml = await requestMalPage(animeId);
+            const doc = new DOMParser().parseFromString(malHtml, 'text/html');
+            openings = getMusic(doc, ['opnening', 'opening']);
+            endings = getMusic(doc, 'ending');
+        } catch (error) {
+            log('MyAnimeList недоступен, используется AnimeThemes:', error);
+        }
+
+        const animeInfo = await animeInfoPromise;
+
+        if (!openings.length && !endings.length) {
+            ({ openings, endings } = await requestAnimeThemes(animeId, animeInfo));
+        }
 
         if (!isAnimePage() || getAnimeId() !== animeId) return;
 
-        const doc = new DOMParser().parseFromString(malHtml, 'text/html');
-        const openings = getMusic(doc, ['opnening', 'opening']);
-        const endings = getMusic(doc, 'ending');
-        const searchTitle = englishTitle || getFallbackTitle();
+        const searchTitle = animeInfo.searchTitle || getFallbackTitle();
 
         if (createOPEDList(openings, endings, searchTitle, animeId)) {
             log(`Добавлено: OP ${openings.length}, ED ${endings.length}`);

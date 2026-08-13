@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Shiki New Anime Links (Ruracker|MangaLib|Nyaa|Other)
 // @namespace    https://shikimori.rip/
-// @version      1.0.20
+// @version      1.0.21
 // @match        *://shikimori.org/*
 // @match        *://shikimori.one/*
 // @match        *://shikimori.me/*
@@ -275,6 +275,17 @@ function createExternalLink(parent, id, text, url = '') {
     return link;
 }
 
+const externalLinkIconStyle = `
+.b-external_link > a[id].b-link:before {
+    content: '';
+    flex-shrink: 0;
+    height: 19px;
+    margin-right: 6px;
+    width: 19px;
+    background-size: 19px 19px;
+    -webkit-background-size: 19px 19px;
+}`;
+
 async function updateAnimeJoyLink(link, title) {
     const cached = GM_getValue(ANIME_JOY_CACHE_KEY, null);
     const initialOrigin = cached?.origin || ANIME_JOY_FALLBACK_ORIGIN;
@@ -302,7 +313,7 @@ function newLinks() {
     let yummyAnimeL = 'https://yummyanime.tv';
     let bckgrSize = 'background-size: 19px 19px; -webkit-background-size: 19px 19px;';
 
-    let style_anime = `
+    let style_anime = `${externalLinkIconStyle}
 .b-external_link.official_site a:before { background-size: cover !important; }
 #linkRutracker.b-link:before { background: url(${ruTrImg}) no-repeat; }
 #linkRutrackerRu.b-link:before { background: url(${ruTrImg}) no-repeat; }
@@ -325,13 +336,13 @@ function newLinks() {
 #linkNyaa.b-link:before, #linkNyaaOST.b-link:before, #linkAnilibria.b-link:before,
 #eraiRaws.b-link:before, #sovetRom.b-link:before, #linkKodik.b-link:before { ${bckgrSize} }
 `;
-    let style_manga = `
+    let style_manga = `${externalLinkIconStyle}
 #linkRutracker.b-link:before { background: url(${ruTrImg}) no-repeat; }
 #linkMangaFind.b-link:before { background: url(https://mangalib.me/favicon.ico) no-repeat; }
 
 #linkRutracker.b-link:before, #linkMangaFind.b-link:before { ${bckgrSize} }
 `;
-    let style_ranobe = `
+    let style_ranobe = `${externalLinkIconStyle}
 #linkRutracker.b-link:before { background: url(${ruTrImg}) no-repeat; }
 #linkRanobeLib.b-link:before { background: url(https://imgur.com/UoyBf5V.png) no-repeat; }
 #linkRanobeHub.b-link:before { background: url(https://ranobehub.org/favicon.ico) no-repeat; }

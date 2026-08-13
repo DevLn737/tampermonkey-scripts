@@ -20,7 +20,9 @@ const sandbox = {
 };
 
 vm.createContext(sandbox);
-vm.runInContext(`${source}\nglobalThis.createExternalLinkForTest = createExternalLink;`, sandbox);
+vm.runInContext(`${source}
+globalThis.createExternalLinkForTest = createExternalLink;
+globalThis.externalLinkIconStyleForTest = externalLinkIconStyle;`, sandbox);
 
 function makeElement(tagName) {
     return {
@@ -69,4 +71,13 @@ test('creates a real anchor without inheriting the official site data-href', () 
     assert.equal(link.rel, 'noopener noreferrer');
     assert.equal(link.dataset, undefined);
     assert.equal(officialLink.dataset.href, 'https://official.example/');
+});
+
+test('defines the pseudo-element dimensions required for custom link icons', () => {
+    const style = sandbox.externalLinkIconStyleForTest;
+
+    assert.match(style, /\.b-external_link > a\[id\]\.b-link:before/);
+    assert.match(style, /content:\s*''/);
+    assert.match(style, /height:\s*19px/);
+    assert.match(style, /width:\s*19px/);
 });
