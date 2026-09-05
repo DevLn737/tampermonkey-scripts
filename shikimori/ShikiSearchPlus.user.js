@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ShikiSearch+
 // @namespace    https://shikimori.rip/
-// @version      2.4.2
+// @version      2.4.3
 // @match        *://shikimori.org/*
 // @match        *://shikimori.one/*
 // @match        *://shikimori.me/*
@@ -9,6 +9,7 @@
 // @match        *://shiki.one/*
 // @match        *://shikimori.rip/*
 // @match        *://shikimori.fi/*
+// @match        *://shikimori.mov/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain_url=https://shikimori.rip
 // @description  Добавляет больше ссылок в раздел "На других сайтах"
 // @author       LifeH

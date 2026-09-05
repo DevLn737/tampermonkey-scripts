@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Shiki Friend's History
 // @namespace    https://shikimori.rip/
-// @version      1.2.9
+// @version      1.2.10
 // @match        *://shikimori.org/*
 // @match        *://shikimori.one/*
 // @match        *://shikimori.me/*
@@ -9,6 +9,7 @@
 // @match        *://shiki.one/*
 // @match        *://shikimori.rip/*
 // @match        *://shikimori.fi/*
+// @match        *://shikimori.mov/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain_url=https://shikimori.rip
 // @author       Chortowod (https://openuserjs.org/users/Chortowod)
 // @description  Добавляет историю просмотренного друзей на страницу "Друзья", а также строку "Друзья" в выпадающий профиль в правом верхнем углу

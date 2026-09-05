@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Shiki Comments Score
 // @namespace    https://shikimori.rip/
-// @version      1.2.1
+// @version      1.2.2
 // @match        *://shikimori.org/*
 // @match        *://shikimori.one/*
 // @match        *://shikimori.me/*
@@ -9,6 +9,7 @@
 // @match        *://shiki.one/*
 // @match        *://shikimori.rip/*
 // @match        *://shikimori.fi/*
+// @match        *://shikimori.mov/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain_url=https://shikimori.rip
 // @author       Librake
 // @description  Показывает оценку аниме каждого из комментаторов

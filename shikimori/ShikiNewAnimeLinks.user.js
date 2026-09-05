@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Shiki New Anime Links (Ruracker|MangaLib|Nyaa|Other)
 // @namespace    https://shikimori.rip/
-// @version      1.0.21
+// @version      1.0.22
 // @match        *://shikimori.org/*
 // @match        *://shikimori.one/*
 // @match        *://shikimori.me/*
@@ -9,6 +9,7 @@
 // @match        *://shiki.one/*
 // @match        *://shikimori.rip/*
 // @match        *://shikimori.fi/*
+// @match        *://shikimori.mov/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain_url=https://shikimori.rip
 // @author       Chortowod (https://openuserjs.org/scripts/Chortowod)
 // @description  Добавляет пункты "Rutracker", "NNMClub", "MangaLib", "RanobeLib" и др. в список "На других сайтах" для поиска аниме|манги|ранобэ на торрентах/сайтах

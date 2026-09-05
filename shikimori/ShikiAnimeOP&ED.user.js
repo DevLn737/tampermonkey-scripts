@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Shiki Anime OP/ED
 // @namespace    https://shikimori.rip/
-// @version      1.3.0
+// @version      1.3.1
 // @match        *://shikimori.org/*
 // @match        *://shikimori.one/*
 // @match        *://shikimori.me/*
@@ -9,6 +9,7 @@
 // @match        *://shiki.one/*
 // @match        *://shikimori.rip/*
 // @match        *://shikimori.fi/*
+// @match        *://shikimori.mov/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain_url=https://shikimori.rip
 // @description  Отображает опенинги и эндинги на странице аниме
 // @author       ShaDream & Chortowod
